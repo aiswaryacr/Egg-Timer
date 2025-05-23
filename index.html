@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixelated Egg Timer App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Press Start 2P', cursive;
+            /* Apply pixel font */
+            background-color: #e0f2f7;
+            /* A very light, soft blue for a 'cute' sky background */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            /* Ensure it fills the viewport height */
+            margin: 0;
+            padding: 0;
+            /* Removed padding to allow app-window to be full screen */
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Styles for the main app window (the yellow box) */
+        #app-window {
+            background-color: #ffe066;
+            /* Brighter, more saturated yellow */
+            width: 100vw;
+            /* Full viewport width */
+            height: 100vh;
+            /* Full viewport height */
+            max-width: none;
+            /* Removed max-width constraint */
+            max-height: none;
+            /* Removed max-height constraint */
+            display: flex;
+            flex-direction: column;
+            border: 2px solid #ffc107;
+            /* Pixelated border */
+            box-shadow: 4px 4px 0px 0px #ffb300;
+            /* Pixelated shadow */
+            border-radius: 0;
+            /* Sharp corners for pixelated look */
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease-in-out;
+        }
+
+        /* Minimized state for the app window */
+        #app-window.minimized {
+            height: auto;
+            width: 250px;
+            max-width: 250px;
+            padding: 0;
+            box-shadow: 2px 2px 0px 0px #ffb300;
+        }
+
+        #app-window.minimized .content-wrapper,
+        #app-window.minimized .inner-content-box,
+        #app-window.minimized .app-cloud {
+            /* Ensure clouds are hidden when minimized */
+            display: none;
+        }
+
+        #app-window.minimized .title-bar {
+            margin-bottom: 0;
+            border-bottom: none;
+        }
+
+        /* Maximized state for the app window */
+        #app-window.maximized {
+            width: 100vw;
+            /* Full viewport width */
+            height: 100vh;
+            /* Full viewport height */
+            max-width: none;
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+
+        /* Title bar styling */
+        .title-bar {
+            background-color: #ffe066;
+            border-bottom: 2px solid #ffc107;
+            padding: 0.5rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 2rem;
+            border-top-left-radius: 0;
+            /* Sharp corners for pixelated look */
+            border-top-right-radius: 0;
+            /* Sharp corners for pixelated look */
+            z-index: 20;
+        }
+
+        /* Window controls styling */
+        .window-controls {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .control-button {
+            width: 1.5rem;
+            height: 1.5rem;
+            background-color: #ffc107;
+            border: 2px solid #ffb300;
+            border-radius: 0;
+            /* Sharp corners for pixelated look */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: #4b5563;
+            font-weight: bold;
+            line-height: 1;
+            transition: none;
+        }
+
+        .control-button:hover {
+            background-color: #ffb300;
+        }
+
+        /* Styling for main content button (now egg options) */
+        .egg-option-box {
+            background-color: #ffe066;
+            /* Same yellow as inner box */
+            border: 2px solid #ffc107;
+            /* Pixelated border */
+            box-shadow: 4px 4px 0px 0px #ffb300;
+            /* Pixelated shadow */
+            border-radius: 0;
+            /* Sharp corners for pixelated look */
+            padding: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: none;
+            /* Remove smooth transition for pixelated feel */
+            width: 100%;
+            /* Take full width of grid cell */
+            box-sizing: border-box;
+        }
+
+        .egg-option-box:hover {
+            background-color: #fff3b0;
+            /* Slightly lighter yellow on hover */
+        }
+
+        .egg-image {
+            width: 100%;
+            max-width: 80px;
+            /* Adjust max size of images */
+            height: auto;
+            object-fit: contain;
+            image-rendering: pixelated;
+            /* Crucial for pixel art images */
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            /* Indicate image is clickable for upload */
+        }
+
+        .egg-text {
+            font-size: 0.9rem;
+            color: #4b5563;
+            text-align: center;
+        }
+
+        /* Text shadow for pixelated text effect */
+        .pixel-text-shadow {
+            text-shadow: 1px 1px 0px #000;
+            z-index: 10;
+            position: relative;
+        }
+
+        /* Content wrapper to manage internal spacing */
+        .content-wrapper {
+            width: 100%;
+            text-align: center;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 0 1rem;
+            z-index: 15;
+            box-sizing: border-box;
+        }
+
+        /* Inner content box styling */
+        .inner-content-box {
+            background-color: #ffe066;
+            border: 2px solid #ffc107;
+            box-shadow: 4px 4px 0px 0px #ffb300;
+            border-radius: 0;
+            /* Sharp corners for pixelated look */
+            padding: 6rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            max-width: 99%;
+            position: relative;
+            overflow: hidden;
+            /* Keep overflow hidden to contain clouds */
+            height: 100%;
+            z-index: 10;
+            box-sizing: border-box;
+        }
+
+        /* Grid for egg options */
+        .egg-options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            /* 2 columns */
+            gap: 1.5rem;
+            /* Space between options */
+            margin-top: 2rem;
+            /* Space below the question */
+            width: 100%;
+            /* Take full width of inner box */
+            max-width: 400px;
+            /* Limit grid width */
+        }
+
+        /* Smooth Cloud Styling (now all app-clouds) */
+        .app-cloud {
+            position: absolute;
+            background-color: #ffffff;
+            border: none;
+            /* No pixelated border for smooth clouds */
+            box-shadow: none;
+            /* No pixelated shadow for smooth clouds */
+            border-radius: 50%;
+            /* Smooth rounded shape */
+            z-index: 1;
+            /* Clouds are behind content */
+        }
+
+        .app-cloud::before,
+        .app-cloud::after {
+            content: '';
+            position: absolute;
+            background-color: #ffffff;
+            border: none;
+            box-shadow: none;
+            border-radius: 50%;
+        }
+
+        /* Specific cloud positions and sizes within the app-window */
+
+        /* Clouds for the inner content box (positioned relative to the inner-content-box) */
+        .cloud-inner-1 {
+            width: 70px;
+            height: 35px;
+            top: 1rem;
+            left: 1rem;
+            transform: scale(1.2);
+            border-radius: 18px / 9px;
+        }
+
+        .cloud-inner-1::before {
+            top: -8px;
+            left: 15px;
+            width: 28px;
+            height: 28px;
+        }
+
+        .cloud-inner-1::after {
+            top: 2px;
+            left: 45px;
+            width: 22px;
+            height: 22px;
+        }
+
+        .cloud-inner-2 {
+            width: 60px;
+            height: 30px;
+            top: 1rem;
+            right: 1rem;
+            transform: scale(1.0);
+            border-radius: 15px / 8px;
+        }
+
+        .cloud-inner-2::before {
+            top: -5px;
+            left: 10px;
+            width: 25px;
+            height: 25px;
+        }
+
+        .cloud-inner-2::after {
+            top: 5px;
+            left: 35px;
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Moved cloud-inner-3 to a new empty spot */
+        .cloud-inner-3 {
+            width: 80px;
+            height: 40px;
+            top: 30%;
+            /* Adjusted position */
+            left: 5%;
+            /* Adjusted position */
+            transform: scale(1.3);
+            border-radius: 20px / 10px;
+        }
+
+        .cloud-inner-3::before {
+            top: -10px;
+            left: 20px;
+            width: 30px;
+            height: 30px;
+        }
+
+        .cloud-inner-3::after {
+            top: 0px;
+            left: 50px;
+            width: 25px;
+            height: 25px;
+        }
+
+        /* Moved cloud-inner-4 to a new empty spot */
+        .cloud-inner-4 {
+            width: 65px;
+            height: 32px;
+            top: 15%;
+            /* New top position */
+            left: 50%;
+            /* New left position (center horizontally) */
+            transform: translateX(-50%) scale(1.1);
+            /* Center horizontally */
+            border-radius: 16px / 8px;
+        }
+
+        .cloud-inner-4::before {
+            top: -6px;
+            left: 12px;
+            width: 25px;
+            height: 25px;
+        }
+
+        .cloud-inner-4::after {
+            top: 2px;
+            left: 40px;
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Moved cloud-inner-5 to the left side */
+        .cloud-inner-5 {
+            width: 75px;
+            height: 38px;
+            top: 50%;
+            /* Keep vertical center */
+            left: 1rem;
+            /* Position on the left side */
+            transform: translateY(-50%) scale(1.0);
+            /* Only translate Y for vertical centering */
+            border-radius: 19px / 9px;
+        }
+
+        .cloud-inner-5::before {
+            top: -10px;
+            left: 20px;
+            width: 28px;
+            height: 28px;
+        }
+
+        .cloud-inner-5::after {
+            top: 0px;
+            left: 45px;
+            width: 22px;
+            height: 22px;
+        }
+
+        /* New clouds for inner box - made bigger */
+        .cloud-inner-6 {
+            width: 60px;
+            height: 30px;
+            top: 15%;
+            left: 30%;
+            transform: scale(0.9);
+            border-radius: 15px / 8px;
+        }
+
+        .cloud-inner-6::before {
+            top: -5px;
+            left: 10px;
+            width: 25px;
+            height: 25px;
+        }
+
+        .cloud-inner-6::after {
+            top: 5px;
+            left: 35px;
+            width: 20px;
+            height: 20px;
+        }
+
+        .cloud-inner-7 {
+            width: 70px;
+            height: 35px;
+            bottom: 18%;
+            right: 30%;
+            transform: scale(1.0);
+            border-radius: 18px / 9px;
+        }
+
+        .cloud-inner-7::before {
+            top: -8px;
+            left: 15px;
+            width: 28px;
+            height: 28px;
+        }
+
+        .cloud-inner-7::after {
+            top: 2px;
+            left: 45px;
+            width: 22px;
+            height: 22px;
+        }
+
+        .cloud-inner-8 {
+            width: 55px;
+            height: 28px;
+            top: 40%;
+            right: 15%;
+            transform: scale(0.8);
+            border-radius: 14px / 7px;
+        }
+
+        .cloud-inner-8::before {
+            top: -6px;
+            left: 10px;
+            width: 20px;
+            height: 20px;
+        }
+
+        .cloud-inner-8::after {
+            top: 1px;
+            left: 30px;
+            width: 16px;
+            height: 16px;
+        }
+
+        /* New clouds for the bottom of the inner box */
+        .cloud-inner-9 {
+            width: 80px;
+            height: 40px;
+            bottom: 6rem;
+            /* Moved further up from the bottom */
+            left: 30%;
+            /* Adjust horizontal position */
+            transform: scale(1.2);
+            border-radius: 20px / 10px;
+        }
+
+        .cloud-inner-9::before {
+            top: -10px;
+            left: 20px;
+            width: 30px;
+            height: 30px;
+        }
+
+        .cloud-inner-9::after {
+            top: 0px;
+            left: 50px;
+            width: 25px;
+            height: 25px;
+        }
+
+        .cloud-inner-10 {
+            width: 70px;
+            height: 35px;
+            bottom: 4rem;
+            /* Position from the bottom */
+            left: 60%;
+            /* Adjust horizontal position */
+            transform: scale(1.0);
+            border-radius: 18px / 9px;
+        }
+
+        .cloud-inner-10::before {
+            top: -8px;
+            left: 15px;
+            width: 28px;
+            height: 28px;
+        }
+
+        .cloud-inner-10::after {
+            top: 2px;
+            left: 45px;
+            width: 22px;
+            height: 22px;
+        }
+
+
+        /* Clouds for the main yellow area (positioned relative to #app-window) - Adjusted for full visibility */
+        .cloud-main-1 {
+            width: 100px;
+            height: 50px;
+            top: 2rem;
+            left: 2rem;
+            transform: scale(1.5);
+            border-radius: 25px / 12px;
+        }
+
+        .cloud-main-1::before {
+            top: -15px;
+            left: 25px;
+            width: 40px;
+            height: 40px;
+        }
+
+        .cloud-main-1::after {
+            top: 5px;
+            left: 70px;
+            width: 30px;
+            height: 30px;
+        }
+
+        .cloud-main-2 {
+            width: 70px;
+            height: 35px;
+            top: 2rem;
+            right: 2rem;
+            transform: scale(1.1);
+            border-radius: 18px / 9px;
+        }
+
+        .cloud-main-2::before {
+            top: -10px;
+            left: 10px;
+            width: 25px;
+            height: 25px;
+        }
+
+        .cloud-main-2::after {
+            top: 0px;
+            left: 45px;
+            width: 20px;
+            height: 20px;
+        }
+
+        .cloud-main-3 {
+            width: 90px;
+            height: 45px;
+            bottom: 2rem;
+            left: 2rem;
+            transform: scale(1.3);
+            border-radius: 22px / 12px;
+        }
+
+        .cloud-main-3::before {
+            top: -12px;
+            left: 20px;
+            width: 35px;
+            height: 35px;
+        }
+
+        .cloud-main-3::after {
+            top: 8px;
+            left: 60px;
+            width: 28px;
+            height: 28px;
+        }
+
+        .cloud-main-4 {
+            width: 80px;
+            height: 40px;
+            bottom: 2rem;
+            right: 2rem;
+            transform: scale(1.0);
+            border-radius: 20px / 10px;
+        }
+
+        .cloud-main-4::before {
+            top: -8px;
+            left: 15px;
+            width: 30px;
+            height: 30px;
+        }
+
+        .cloud-main-4::after {
+            top: 0px;
+            left: 50px;
+            width: 25px;
+            height: 25px;
+        }
+
+        .cloud-main-5 {
+            width: 60px;
+            height: 30px;
+            top: 30%;
+            left: 3%;
+            transform: scale(0.9);
+            border-radius: 15px / 8px;
+        }
+
+        .cloud-main-5::before {
+            top: -5px;
+            left: 10px;
+            width: 20px;
+            height: 20px;
+        }
+
+        .cloud-main-5::after {
+            top: 5px;
+            left: 35px;
+            width: 18px;
+            height: 18px;
+        }
+
+        .cloud-main-6 {
+            width: 75px;
+            height: 38px;
+            bottom: 20%;
+            right: 3%;
+            transform: scale(1.2);
+            border-radius: 19px / 9px;
+        }
+
+        .cloud-main-6::before {
+            top: -10px;
+            left: 20px;
+            width: 28px;
+            height: 28px;
+        }
+
+        .cloud-main-6::after {
+            top: 0px;
+            left: 45px;
+            width: 22px;
+            height: 22px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app-window">
+        <div class="app-cloud cloud-main-1"></div>
+        <div class="app-cloud cloud-main-2"></div>
+        <div class="app-cloud cloud-main-3"></div>
+        <div class="app-cloud cloud-main-4"></div>
+        <div class="app-cloud cloud-main-5"></div>
+        <div class="app-cloud cloud-main-6"></div>
+
+        <div class="title-bar">
+            <span class="text-base font-bold text-gray-800 pixel-text-shadow">Egg Timer &lt;3</span>
+            <div class="window-controls">
+                <div class="control-button" id="minimize-btn">-</div>
+                <div class="control-button" id="maximize-btn">□</div>
+                <div class="control-button" id="close-btn">X</div>
+            </div>
+        </div>
+
+        <div id="start-page" class="content-wrapper">
+            <div class="inner-content-box">
+                <div class="app-cloud cloud-inner-1"></div>
+                <div class="app-cloud cloud-inner-2"></div>
+                <div class="app-cloud cloud-inner-3"></div>
+                <div class="app-cloud cloud-inner-4"></div>
+                <div class="app-cloud cloud-inner-5"></div>
+                <div class="app-cloud cloud-inner-6"></div>
+                <div class="app-cloud cloud-inner-7"></div>
+                <div class="app-cloud cloud-inner-8"></div>
+                <div class="app-cloud cloud-inner-9"></div>
+                <div class="app-cloud cloud-inner-10"></div>
+
+                <h1 class="text-2xl font-bold text-gray-800 mb-6 pixel-text-shadow">What are you making today?</h1>
+                <div class="egg-options-grid">
+                    <div class="egg-option-box" id="egg-option-1" data-target-page="egg1.html">
+                        <input type="file" accept="image/*" id="file-input-egg1" class="hidden">
+                        <img src="egg1.jpg" alt="Soft Boiled Egg" class="egg-image" id="egg-image-1">
+                        <span class="egg-text pixel-text-shadow">Soft Boiled</span>
+                    </div>
+                    <div class="egg-option-box" id="egg-option-2" data-target-page="egg2.html">
+                        <input type="file" accept="image/*" id="file-input-egg2" class="hidden">
+                        <img src="egg2.jpg" alt="Medium Boiled Egg" class="egg-image"
+                            id="egg-image-2">
+                        <span class="egg-text pixel-text-shadow">Medium Boiled</span>
+                    </div>
+                    <div class="egg-option-box" id="egg-option-3" data-target-page="egg3.html">
+                        <input type="file" accept="image/*" id="file-input-egg3" class="hidden">
+                        <img src="egg3.jpg" alt="Fried Egg" class="egg-image" id="egg-image-3">
+                        <span class="egg-text pixel-text-shadow">Fried Egg</span>
+                    </div>
+                    <div class="egg-option-box" id="egg-option-4" data-target-page="egg4.html">
+                        <input type="file" accept="image/*" id="file-input-egg4" class="hidden">
+                        <img src="egg4.jpg" alt="Scrambled Egg" class="egg-image" id="egg-image-4">
+                        <span class="egg-text pixel-text-shadow">Scrambled Egg</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="next-page" class="content-wrapper hidden" style="display: none;">
+            <div class="inner-content-box">
+                <div class="app-cloud cloud-inner-1"></div>
+                <div class="app-cloud cloud-inner-2"></div>
+                <div class="app-cloud cloud-inner-3"></div>
+                <div class="app-cloud cloud-inner-4"></div>
+                <div class="app-cloud cloud-inner-5"></div>
+                <div class="app-cloud cloud-inner-6"></div>
+                <div class="app-cloud cloud-inner-7"></div>
+                <div class="app-cloud cloud-inner-8"></div>
+                <div class="app-cloud cloud-inner-9"></div>
+                <div class="app-cloud cloud-inner-10"></div>
+
+                <h1 class="text-2xl font-bold text-gray-800 mb-6 pixel-text-shadow">Egg Timer Running...</h1>
+                <p class="text-5xl font-bold text-gray-800 pixel-text-shadow">00:03</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get references to elements
+        const appWindow = document.getElementById('app-window');
+        const startPage = document.getElementById('start-page');
+        const nextPage = document.getElementById('next-page'); // This is the generic timer page
+        const eggOptionBoxes = document.querySelectorAll('.egg-option-box'); // Get all egg option boxes
+        const minimizeBtn = document.getElementById('minimize-btn');
+        const maximizeBtn = document.getElementById('maximize-btn');
+        const closeBtn = document.getElementById('close-btn');
+
+        // Function to show a page and hide others
+        function showPage(pageToShow) {
+            startPage.style.display = 'none';
+            nextPage.style.display = 'none';
+
+            pageToShow.style.display = 'flex'; // Use flex for content-wrapper
+        }
+
+        // Add event listeners for image upload
+        document.addEventListener('DOMContentLoaded', () => {
+            const eggImages = document.querySelectorAll('.egg-image');
+            eggImages.forEach(img => {
+                const eggId = img.id.replace('egg-image-', '');
+                const fileInput = document.getElementById(`file-input-egg${eggId}`);
+
+                // Click image to trigger file input
+                img.addEventListener('click', (event) => {
+                    event.stopPropagation(); // Prevent the egg-option-box click from firing
+                    fileInput.click();
+                });
+
+                // Handle file selection
+                fileInput.addEventListener('change', (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            img.src = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            });
+
+            // Event listener for each egg option box to navigate
+            eggOptionBoxes.forEach(box => {
+                box.addEventListener('click', () => {
+                    const targetPage = box.dataset.targetPage; // Get the value of data-target-page
+
+                    if (targetPage) {
+                        window.location.href = targetPage; // Redirect to the specified page
+                    } else {
+                        // Fallback or default behavior if no target page is specified (shouldn't happen with data-attributes)
+                        showPage(nextPage); // Keeps previous behavior if data-target-page is missing
+                    }
+                });
+            });
+
+            // Event listener for Minimize button
+            minimizeBtn.addEventListener('click', () => {
+                appWindow.classList.toggle('minimized');
+                if (appWindow.classList.contains('maximized')) {
+                    appWindow.classList.remove('maximized'); // Exit maximized if minimizing
+                }
+            });
+
+            // Event listener for Maximize button
+            maximizeBtn.addEventListener('click', () => {
+                appWindow.classList.toggle('maximized');
+                if (appWindow.classList.contains('minimized')) {
+                    appWindow.classList.remove('minimized'); // Exit minimized if maximizing
+                }
+            });
+
+            // Event listener for Close button
+            closeBtn.addEventListener('click', () => {
+                appWindow.style.display = 'none'; // Hide the entire app window
+            });
+
+            // Initialize to show the start page
+            showPage(startPage);
+        });
+    </script>
+</body>
+
+</html>

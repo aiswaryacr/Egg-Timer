@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medium Boiled Egg Timer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #e0f2f7;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #app-window {
+            background-color: #ffe066;
+            width: 100vw;
+            height: 100vh;
+            max-width: none;
+            max-height: none;
+            display: flex;
+            flex-direction: column;
+            border: 2px solid #ffc107;
+            box-shadow: 4px 4px 0px 0px #ffb300;
+            border-radius: 0;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease-in-out;
+        }
+
+        #app-window.minimized {
+            height: auto;
+            width: 250px;
+            max-width: 250px;
+            padding: 0;
+            box-shadow: 2px 2px 0px 0px #ffb300;
+        }
+
+        #app-window.minimized .content-wrapper,
+        #app-window.minimized .inner-content-box,
+        #app-window.minimized .app-cloud {
+            display: none;
+        }
+
+        #app-window.minimized .title-bar {
+            margin-bottom: 0;
+            border-bottom: none;
+        }
+
+        #app-window.maximized {
+            width: 100vw;
+            height: 100vh;
+            max-width: none;
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        .title-bar {
+            background-color: #ffe066;
+            border-bottom: 2px solid #ffc107;
+            padding: 0.5rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 2rem;
+            border-top-left-radius: 0;
+            border-top-right-radius: 0;
+            z-index: 20;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .control-button {
+            width: 1.5rem;
+            height: 1.5rem;
+            background-color: #ffc107;
+            border: 2px solid #ffb300;
+            border-radius: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: #4b5563;
+            font-weight: bold;
+            line-height: 1;
+            transition: none;
+        }
+
+        .control-button:hover {
+            background-color: #ffb300;
+        }
+
+        .pixel-text-shadow {
+            text-shadow: 1px 1px 0px #000;
+            z-index: 10;
+            position: relative;
+        }
+
+        .content-wrapper {
+            width: 100%;
+            text-align: center;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 0 1rem;
+            z-index: 15;
+            box-sizing: border-box;
+        }
+
+        .inner-content-box {
+            background-color: #ffe066;
+            border: 2px solid #ffc107;
+            box-shadow: 4px 4px 0px 0px #ffb300;
+            border-radius: 0;
+            padding: 2rem;
+            /* Adjusted padding for timers */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            max-width: 99%;
+            position: relative;
+            overflow: hidden;
+            height: 100%;
+            z-index: 10;
+            box-sizing: border-box;
+        }
+
+        .timer-image {
+            width: 100%;
+            max-width: 120px;
+            /* Larger image for timer page */
+            height: auto;
+            object-fit: contain;
+            image-rendering: pixelated;
+            margin-bottom: 1.5rem;
+            /* Space below image */
+        }
+
+        /* Smooth Cloud Styling (all app-clouds) */
+        .app-cloud {
+            position: absolute;
+            background-color: #ffffff;
+            border: none;
+            box-shadow: none;
+            border-radius: 50%;
+            z-index: 1;
+        }
+
+        .app-cloud::before,
+        .app-cloud::after {
+            content: '';
+            position: absolute;
+            background-color: #ffffff;
+            border: none;
+            box-shadow: none;
+            border-radius: 50%;
+        }
+
+        /* Specific cloud positions and sizes for inner content box */
+        .cloud-inner-1 {
+            width: 70px;
+            height: 35px;
+            top: 1rem;
+            left: 1rem;
+            transform: scale(1.2);
+            border-radius: 18px / 9px;
+        }
+
+        .cloud-inner-1::before {
+            top: -8px;
+            left: 15px;
+            width: 28px;
+            height: 28px;
+        }
+
+        .cloud-inner-1::after {
+            top: 2px;
+            left: 45px;
+            width: 22px;
+            height: 22px;
+        }
+
+        .cloud-inner-2 {
+            width: 60px;
+            height: 30px;
+            top: 1rem;
+            right: 1rem;
+            transform: scale(1.0);
+            border-radius: 15px / 8px;
+        }
+
+        .cloud-inner-2::before {
+            top: -5px;
+            left: 10px;
+            width: 25px;
+            height: 25px;
+        }
+
+        .cloud-inner-2::after {
+            top: 5px;
+            left: 35px;
+            width: 20px;
+            height: 20px;
+        }
+
+        .cloud-inner-3 {
+            width: 80px;
+            height: 40px;
+            top: 30%;
+            left: 5%;
+            transform: scale(1.3);
+            border-radius: 20px / 10px;
+        }
+
+        .cloud-inner-3::before {
+            top: -10px;
+            left: 20px;
+            width: 30px;
+            height: 30px;
+        }
+
+        .cloud-inner-3::after {
+            top: 0px;
+            left: 50px;
+            width: 25px;
+            height: 25px;
+        }
+
+        .cloud-inner-4 {
+            width: 65px;
+            height: 32px;
+            top: 15%;
+            left: 50%;
+            transform: translateX(-50%) scale(1.1);
+            border-radius: 16px / 8px;
+        }
+
+        .cloud-inner-4::before {
+            top: -6px;
+            left: 12px;
+            width: 25px;
+            height: 25px;
+        }
+
+        .cloud-inner-4::after {
+            top: 2px;
+            left: 40px;
+            width: 20px;
+            height: 20px;
+        }
+
+        .cloud-inner-5 {
+            width: 75px;
+            height: 38px;
+            top: 50%;
+            left: 1rem;
+            transform: translateY(-50%) scale(1.0);
+            border-radius: 19px / 9px;
+        }
+
+        .cloud-inner-5::before {
+            top: -10px;
+            left: 20px;
+            width: 28px;
+            height: 28px;
+        }
+
+        .cloud-inner-5::after {
+            top: 0px;
+            left: 45px;
+            width: 22px;
+            height: 22px;
+        }
+
+        .cloud-inner-6 {
+            width: 60px;
+            height: 30px;
+            top: 15%;
+            left: 30%;
+            transform: scale(0.9);
+            border-radius: 15px / 8px;
+        }
+
+        .cloud-inner-6::before {
+            top: -5px;
+            left: 10px;
+            width: 25px;
+            height: 25px;
+        }
+
+        .cloud-inner-6::after {
+            top: 5px;
+            left: 35px;
+            width: 20px;
+            height: 20px;
+        }
+
+        .cloud-inner-7 {
+            width: 70px;
+            height: 35px;
+            bottom: 18%;
+            right: 30%;
+            transform: scale(1.0);
+            border-radius: 18px / 9px;
+        }
+
+        .cloud-inner-7::before {
+            top: -8px;
+            left: 15px;
+            width: 28px;
+            height: 28px;
+        }
+
+        .cloud-inner-7::after {
+            top: 2px;
+            left: 45px;
+            width: 22px;
+            height: 22px;
+        }
+
+        .cloud-inner-8 {
+            width: 55px;
+            height: 28px;
+            top: 40%;
+            right: 15%;
+            transform: scale(0.8);
+            border-radius: 14px / 7px;
+        }
+
+        .cloud-inner-8::before {
+            top: -6px;
+            left: 10px;
+            width: 20px;
+            height: 20px;
+        }
+
+        .cloud-inner-8::after {
+            top: 1px;
+            left: 30px;
+            width: 16px;
+            height: 16px;
+        }
+
+        .cloud-inner-9 {
+            width: 80px;
+            height: 40px;
+            bottom: 6rem;
+            left: 30%;
+            transform: scale(1.2);
+            border-radius: 20px / 10px;
+        }
+
+        .cloud-inner-9::before {
+            top: -10px;
+            left: 20px;
+            width: 30px;
+            height: 30px;
+        }
+
+        .cloud-inner-9::after {
+            top: 0px;
+            left: 50px;
+            width: 25px;
+            height: 25px;
+        }
+
+        .cloud-inner-10 {
+            width: 70px;
+            height: 35px;
+            bottom: 4rem;
+            left: 60%;
+            transform: scale(1.0);
+            border-radius: 18px / 9px;
+        }
+
+        .cloud-inner-10::before {
+            top: -8px;
+            left: 15px;
+            width: 28px;
+            height: 28px;
+        }
+
+        .cloud-inner-10::after {
+            top: 2px;
+            left: 45px;
+            width: 22px;
+            height: 22px;
+        }
+
+        /* Clouds for main yellow area */
+        .cloud-main-1 {
+            width: 100px;
+            height: 50px;
+            top: 2rem;
+            left: 2rem;
+            transform: scale(1.5);
+            border-radius: 25px / 12px;
+        }
+
+        .cloud-main-1::before {
+            top: -15px;
+            left: 25px;
+            width: 40px;
+            height: 40px;
+        }
+
+        .cloud-main-1::after {
+            top: 5px;
+            left: 70px;
+            width: 30px;
+            height: 30px;
+        }
+
+        .cloud-main-2 {
+            width: 70px;
+            height: 35px;
+            top: 2rem;
+            right: 2rem;
+            transform: scale(1.1);
+            border-radius: 18px / 9px;
+        }
+
+        .cloud-main-2::before {
+            top: -10px;
+            left: 10px;
+            width: 25px;
+            height: 25px;
+        }
+
+        .cloud-main-2::after {
+            top: 0px;
+            left: 45px;
+            width: 20px;
+            height: 20px;
+        }
+
+        .cloud-main-3 {
+            width: 90px;
+            height: 45px;
+            bottom: 2rem;
+            left: 2rem;
+            transform: scale(1.3);
+            border-radius: 22px / 12px;
+        }
+
+        .cloud-main-3::before {
+            top: -12px;
+            left: 20px;
+            width: 35px;
+            height: 35px;
+        }
+
+        .cloud-main-3::after {
+            top: 8px;
+            left: 60px;
+            width: 28px;
+            height: 28px;
+        }
+
+        .cloud-main-4 {
+            width: 80px;
+            height: 40px;
+            bottom: 2rem;
+            right: 2rem;
+            transform: scale(1.0);
+            border-radius: 20px / 10px;
+        }
+
+        .cloud-main-4::before {
+            top: -8px;
+            left: 15px;
+            width: 30px;
+            height: 30px;
+        }
+
+        .cloud-main-4::after {
+            top: 0px;
+            left: 50px;
+            width: 25px;
+            height: 25px;
+        }
+
+        .cloud-main-5 {
+            width: 60px;
+            height: 30px;
+            top: 30%;
+            left: 3%;
+            transform: scale(0.9);
+            border-radius: 15px / 8px;
+        }
+
+        .cloud-main-5::before {
+            top: -5px;
+            left: 10px;
+            width: 20px;
+            height: 20px;
+        }
+
+        .cloud-main-5::after {
+            top: 5px;
+            left: 35px;
+            width: 18px;
+            height: 18px;
+        }
+
+        .cloud-main-6 {
+            width: 75px;
+            height: 38px;
+            bottom: 20%;
+            right: 3%;
+            transform: scale(1.2);
+            border-radius: 19px / 9px;
+        }
+
+        .cloud-main-6::before {
+            top: -10px;
+            left: 20px;
+            width: 28px;
+            height: 28px;
+        }
+
+        .cloud-main-6::after {
+            top: 0px;
+            left: 45px;
+            width: 22px;
+            height: 22px;
+        }
+
+        /* The .back-button CSS is no longer needed since it's removed from HTML */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app-window">
+        <div class="app-cloud cloud-main-1"></div>
+        <div class="app-cloud cloud-main-2"></div>
+        <div class="app-cloud cloud-main-3"></div>
+        <div class="app-cloud cloud-main-4"></div>
+        <div class="app-cloud cloud-main-5"></div>
+        <div class="app-cloud cloud-main-6"></div>
+
+        <div class="title-bar">
+            <span class="text-base font-bold text-gray-800 pixel-text-shadow">Medium Boiled Egg Timer</span>
+            <div class="window-controls">
+                <div class="control-button" id="minimize-btn">-</div>
+                <div class="control-button" id="maximize-btn">□</div>
+                <div class="control-button" id="close-btn">X</div>
+            </div>
+        </div>
+
+        <div id="timer-page-content" class="content-wrapper">
+            <div class="inner-content-box">
+                <div class="app-cloud cloud-inner-1"></div>
+                <div class="app-cloud cloud-inner-2"></div>
+                <div class="app-cloud cloud-inner-3"></div>
+                <div class="app-cloud cloud-inner-4"></div>
+                <div class="app-cloud cloud-inner-5"></div>
+                <div class="app-cloud cloud-inner-6"></div>
+                <div class="app-cloud cloud-inner-7"></div>
+                <div class="app-cloud cloud-inner-8"></div>
+                <div class="app-cloud cloud-inner-9"></div>
+                <div class="app-cloud cloud-inner-10"></div>
+
+                <h1 class="text-2xl font-bold text-gray-800 mb-6 pixel-text-shadow">Egg Timer Running...</h1>
+                <img id="displayed-egg-image" src="egg2.jpg" alt="Medium Boiled Egg" class="timer-image">
+                <p class="text-5xl font-bold text-gray-800 pixel-text-shadow" id="timer-display">00:00</p>
+                <p id="ready-text" class="text-2xl font-bold text-gray-800 pixel-text-shadow hidden">Ready to eat!</p>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const appWindow = document.getElementById('app-window');
+        const timerDisplay = document.getElementById('timer-display');
+        const readyText = document.getElementById('ready-text');
+        const minimizeBtn = document.getElementById('minimize-btn');
+        const maximizeBtn = document.getElementById('maximize-btn');
+        const closeBtn = document.getElementById('close-btn');
+
+        let timerInterval;
+        let timeLeft = 300; // 5 minutes (300 seconds) for Medium Boiled Egg
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+        }
+
+        function startTimer() {
+            timerDisplay.textContent = formatTime(timeLeft);
+            readyText.classList.add('hidden'); // Hide "Ready to eat!" initially
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = formatTime(timeLeft);
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.textContent = "DONE!";
+                    readyText.classList.remove('hidden'); // Show "Ready to eat!"
+                    // Optional: Add an alert or sound effect here
+                }
+            }, 1000);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            startTimer(); // Start the timer automatically when the page loads
+
+            // Window controls
+            if (minimizeBtn) {
+                minimizeBtn.addEventListener('click', () => {
+                    appWindow.classList.toggle('minimized');
+                    appWindow.classList.remove('maximized');
+                });
+            }
+            if (maximizeBtn) {
+                maximizeBtn.addEventListener('click', () => {
+                    appWindow.classList.toggle('maximized');
+                    appWindow.classList.remove('minimized');
+                });
+            }
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    appWindow.style.display = 'none'; // This hides the entire app window
+                    clearInterval(timerInterval); // Stop the timer if the app window is closed
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
